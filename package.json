@@ -9,14 +9,19 @@
     "@mui/material": "^5.13.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-scripts": "5.0.1"
+    "react-markdown": "^10.1.0",
+    "react-scripts": "5.0.1",
+    "remark-gfm": "^4.0.1"
   },
   "scripts": {
     "start": "react-scripts start",
+    "flask-dev": "bash -lc 'source .venv/bin/activate && python -m flask --app api.index run -p 8000 --reload'",
+    "dev": "concurrently -n FRONTEND,BACKEND -c blue,green \"wait-on http-get://localhost:8000/healthz && npm start\" \"npm run flask-dev\"",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
+  "proxy": "http://localhost:8000",
   "eslintConfig": {
     "extends": [
       "react-app",
@@ -34,5 +39,10 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.0",
+    "cross-env": "^10.0.0",
+    "wait-on": "^8.0.4"
   }
 }

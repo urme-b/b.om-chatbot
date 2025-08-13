@@ -67,3 +67,40 @@ export function getResponse(userInput) {
   const defaultResponses = knowledgeBase.default.responses;
   return defaultResponses[Math.floor(Math.random() * defaultResponses.length)];
 }
+
+const API_BASE = (() => {
+  if (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE) {
+    return import.meta.env.VITE_API_BASE; // Vite
+  }
+  if (typeof process !== "undefined" && process.env?.REACT_APP_API_BASE) {
+    return process.env.REACT_APP_API_BASE; // CRA
+  }
+  return ""; // use relative /api when proxied
+})();
+
+export async function chatWithBackend(messages) {
+  const res = await fetch(`${API_BASE}/api/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ messages }),
+  });
+
+  const raw = await res.text();
+  let data;
+  try { data = raw ? JSON.parse(raw) : {}; } catch { data = { error: raw }; }
+
+  if (!res.ok) {
+    const msg = data?.error || `HTTP ${res.status}: ${raw || "Unknown error"}`;
+    throw new Error(msg);
+  }
+
+  // ✨ Normalize common shapes from the backend
+  const content =
+    typeof data === "string"
+      ? data
+      : data.content ?? data.answer ?? data.response ?? data.text ?? raw;
+
+  const sources = Array.isArray(data?.sources) ? data.sources : [];
+
+  return { content, sources, raw: data };
+}

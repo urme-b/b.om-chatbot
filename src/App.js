@@ -10,7 +10,10 @@ import {
   Close as CloseIcon,
   Chat as ChatIcon
 } from '@mui/icons-material';
-import { getResponse } from './knowledgeBase';
+import { chatWithBackend } from './knowledgeBase';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { Chip } from '@mui/material';
 
 // Theme configuration
 const theme = createTheme({
@@ -57,32 +60,44 @@ function ChatWidget() {
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!input.trim()) return;
-    
-    // Add user message
+  
+    const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  
     const userMessage = {
       id: Date.now(),
       text: input,
       sender: 'user',
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      timestamp: now
     };
-    
-    setMessages(prev => [...prev, userMessage]);
+    const nextUiMessages = [...messages, userMessage];
+    setMessages(nextUiMessages);
     setInput('');
     setIsTyping(true);
-    
-    // Simulate bot typing delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Get response from knowledge base
-    const botResponse = {
-      id: Date.now() + 1,
-      text: getResponse(input),
-      sender: 'bot',
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    };
-    
-    setMessages(prev => [...prev, botResponse]);
-    setIsTyping(false);
+  
+    try {
+      const wire = nextUiMessages.map(m => ({
+        role: m.sender === 'user' ? 'user' : 'assistant',
+        content: m.text
+      }));
+  
+      const { content, sources } = await chatWithBackend(wire);
+  
+      const botMessage = {
+        id: Date.now() + 1,
+        text: content,          // markdown string
+        sources,                // optional array
+        sender: 'bot',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+      setMessages(prev => [...prev, botMessage]);
+    } catch (err) {
+      setMessages(prev => [
+        ...prev,
+        { id: Date.now() + 2, text: `Error: ${err.message}`, sender: 'bot', timestamp: now }
+      ]);
+    } finally {
+      setIsTyping(false);
+    }
   };
 
   return (
@@ -191,7 +206,18 @@ function ChatWidget() {
                     lineHeight: 1.4,
                   }}
                 >
-                  <Typography variant="body2">{message.text}</Typography>
+                  <Typography variant="body2" component="div" sx={{ '& p': { m: 0 }, '& ul, & ol': { pl: 2, my: 0.5 } }}>
+                   <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                     {message.text}
+                   </ReactMarkdown>
+                 </Typography>
+                 {message.sender === 'bot' && Array.isArray(message.sources) && message.sources.length > 0 && (
+                   <Box sx={{ mt: 1, display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                     {message.sources.map((s, i) => (
+                       <Chip key={i} label={s} size="small" variant="outlined" />
+                     ))}
+                   </Box>
+                 )}
                   <Typography
                     variant="caption"
                     sx={{
