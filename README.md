@@ -29,9 +29,20 @@ A compact, modern chat widget for b.om Institute's website. This React-based com
    npm install
    ```
 
-3. Start the development server:
+3. Create & activate virtual environment:
+   ```bash 
+   python3 -m venv .venv
+   source .venv/bin/activate
+   ```
+
+4. Install dependencies:
    ```bash
-   npm start
+   pip install -r requirements.txt
+   ```
+
+5. Start the development server:
+   ```bash
+   npm run dev
    ```
 
 4. Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
